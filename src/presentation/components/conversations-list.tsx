@@ -29,15 +29,29 @@ export function ConversationsList({ initial }: { initial: ConversationSummary[] 
     setDeletingId(id);
     try {
       const res = await fetch(`/api/conversations/${id}`, { method: "DELETE" });
-      if (res.ok) setItems((prev) => prev.filter((c) => c.id !== id));
+      if (res.ok) {
+        setItems((prev) => {
+          const next = prev.filter((c) => c.id !== id);
+          void cacheConversations(next); // keep the offline cache in sync (no ghosts)
+          return next;
+        });
+      }
     } finally {
       setDeletingId(null);
     }
   };
 
   useEffect(() => {
-    if (initial.length > 0) void cacheConversations(initial);
-    else void getCachedConversations().then((c) => c.length > 0 && setItems(c));
+    // Online: the server `initial` is the source of truth — mirror it and cache it
+    // (even when empty, which clears deleted ghosts). Only fall back to the cache
+    // when actually offline and the server gave us nothing.
+    const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+    if (offline && initial.length === 0) {
+      void getCachedConversations().then((c) => c.length > 0 && setItems(c));
+      return;
+    }
+    setItems(initial);
+    void cacheConversations(initial);
   }, [initial]);
 
   useEffect(() => {
