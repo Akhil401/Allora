@@ -97,6 +97,28 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     });
   }
 
+  // Talk mode: give Maestro the learner's most recent words so it can quiz them
+  // ("Come si dice ___?") on what they're actually studying now. Best-effort.
+  if (mode === "talk") {
+    try {
+      const { data: vocab } = await ctx.supabase
+        .from("vocabulary_items")
+        .select("term_it, term_en")
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (vocab && vocab.length > 0) {
+        const list = vocab
+          .map((v: { term_it: string; term_en: string }) => `${v.term_en} = ${v.term_it}`)
+          .join("; ");
+        tutorCtx.memoryBlock = `${tutorCtx.memoryBlock ?? ""}\n- Currently learning (quiz these): ${list}.`;
+      }
+    } catch (err) {
+      logger.warn("tutor.talk_vocab_failed", {
+        reason: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
   // Build the LLM message list. On a Talk kickoff there is no user turn, so we
   // seed a short instruction that makes the tutor greet + ask the first question.
   const llmMessages: ChatMessage[] = history.map((m) => ({
