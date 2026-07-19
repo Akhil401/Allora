@@ -22,7 +22,7 @@ You'll run the app after configuring env vars below. Locally, the mic works on
    - `service_role` key → `SUPABASE_SERVICE_ROLE_KEY` (keep secret)
 3. In **Project Settings → Database**, copy the connection string → `DATABASE_URL`.
 4. Open the **SQL Editor** and run **every** migration in
-   `supabase/migrations/` in filename order (0001 → 0010). Highlights:
+   `supabase/migrations/` in filename order (0001 → 0014). Highlights:
    - `0001_init.sql` (tables, RLS, trigger, seeds)
    - `0002_progress_rpc.sql` (progress function)
    - `0003`–`0009` (V2 + Learn: SRS, achievements, lessons, variants, dedupe)
@@ -30,6 +30,13 @@ You'll run the app after configuring env vars below. Locally, the mic works on
      `memory_embeddings` + the `match_learner_memory` RPC, extends `learner_memory`).
      Re-running is safe; if `create extension vector` errors, enable **pgvector**
      under **Database → Extensions** first, then re-run.
+   - `0011`–`0013` (activity/time tracking, deleted-chat archive, token-usage logging).
+   - `0014_patente.sql` (**Patente** mode: question bank + attempts + helper RPCs).
+5. **Load the patente question bank** (for Patente mode): after migration 0014,
+   run once locally: `node scripts/import-patente.mjs`. It reads
+   `NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` from `.env.local`,
+   downloads the open ministry-mirror dataset (~7k questions) and fills
+   `patente_questions`. Re-runnable (idempotent on `ext_id`).
 5. (Optional) **Authentication → Providers → Email**: for the fastest personal
    setup, disable "Confirm email" so sign-up logs you straight in. Leave it on if
    you prefer email confirmation (the app handles both).

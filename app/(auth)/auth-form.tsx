@@ -99,6 +99,15 @@ export function AuthForm({ mode, action }: { mode: "sign-in" | "sign-up"; action
               </p>
             ) : null}
 
+            {state?.notice ? (
+              <p
+                role="status"
+                className="rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm text-green-700 dark:text-green-400"
+              >
+                {state.notice}
+              </p>
+            ) : null}
+
             <button
               type="submit"
               disabled={pending}

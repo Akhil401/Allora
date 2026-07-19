@@ -14,7 +14,18 @@ type CookieToSet = { name: string; value: string; options?: CookieOptions };
  * If Supabase env vars are absent (e.g. before M2 setup), it no-ops so the
  * public site still renders.
  */
-const PROTECTED = ["/dashboard", "/conversations", "/settings"];
+const PROTECTED = [
+  "/dashboard",
+  "/conversations",
+  "/settings",
+  "/learn",
+  "/talk",
+  "/review",
+  "/vocabulary",
+  "/profile",
+  "/admin",
+  "/patente",
+];
 
 export async function middleware(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

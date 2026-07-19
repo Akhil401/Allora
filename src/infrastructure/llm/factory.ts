@@ -17,6 +17,7 @@ import { OpenAiCompatibleProvider } from "./providers/openai-compatible";
 
 const NVIDIA_BASE = "https://integrate.api.nvidia.com/v1";
 const GROQ_BASE = "https://api.groq.com/openai/v1";
+const CEREBRAS_BASE = "https://api.cerebras.ai/v1";
 
 type Builder = () => LlmProvider | null;
 
@@ -59,9 +60,19 @@ const builders: Record<string, Builder> = {
           model: process.env.GROQ_MODEL ?? "llama-3.3-70b-versatile",
         })
       : null,
+
+  cerebras: () =>
+    serverEnv.CEREBRAS_API_KEY
+      ? new OpenAiCompatibleProvider({
+          id: "cerebras",
+          baseUrl: CEREBRAS_BASE,
+          apiKey: serverEnv.CEREBRAS_API_KEY,
+          model: process.env.CEREBRAS_MODEL ?? "llama-3.3-70b",
+        })
+      : null,
 };
 
-const DEFAULT_ORDER = ["gemini", "nvidia-qwen", "nvidia-gemma", "groq"];
+const DEFAULT_ORDER = ["cerebras", "groq", "gemini", "nvidia-qwen", "nvidia-gemma"];
 
 export function buildProviders(): LlmProvider[] {
   const order = (serverEnv.LLM_PROVIDER_ORDER ?? DEFAULT_ORDER.join(","))

@@ -9,7 +9,7 @@ const credentials = z.object({
   password: z.string().min(8, "Password must be at least 8 characters."),
 });
 
-export type AuthState = { error?: string } | undefined;
+export type AuthState = { error?: string; notice?: string } | undefined;
 
 /** Sign in an existing user. Redirects to the app on success. */
 export async function signInAction(_prev: AuthState, formData: FormData): Promise<AuthState> {
@@ -42,9 +42,13 @@ export async function signUpAction(_prev: AuthState, formData: FormData): Promis
   const { data, error } = await supabase.auth.signUp(parsed.data);
   if (error) return { error: error.message };
 
-  // If email confirmation is enabled, there is no active session yet.
+  // If email confirmation is enabled, there is no active session yet — show a
+  // positive notice (not an error) telling them to check their inbox.
   if (!data.session) {
-    return { error: "Check your email to confirm your account, then sign in." };
+    return {
+      notice:
+        "Account created! We've sent a confirmation link to your email — open it, then sign in. (Check spam; the link can take a minute.)",
+    };
   }
 
   redirect("/dashboard");

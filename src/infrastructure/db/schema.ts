@@ -225,7 +225,32 @@ export const tokenUsage = pgTable("token_usage", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/** Patente: shared question bank (imported) + per-user answer log. */
+export const patenteQuestions = pgTable("patente_questions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  extId: text("ext_id"),
+  topic: text("topic").notNull(),
+  textIt: text("text_it").notNull(),
+  correct: boolean("correct").notNull(),
+  image: text("image"),
+  source: text("source").notNull().default("ministeriale"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const patenteAttempts = pgTable("patente_attempts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull(),
+  questionId: uuid("question_id").notNull(),
+  topic: text("topic").notNull(),
+  kind: text("kind").notNull().default("practice"),
+  chosen: boolean("chosen").notNull(),
+  correct: boolean("correct").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type LearnerMemory = typeof learnerMemory.$inferSelect;
 export type MemoryEmbedding = typeof memoryEmbeddings.$inferSelect;
 export type DeletedConversation = typeof deletedConversations.$inferSelect;
 export type TokenUsage = typeof tokenUsage.$inferSelect;
+export type PatenteQuestion = typeof patenteQuestions.$inferSelect;
+export type PatenteAttempt = typeof patenteAttempts.$inferSelect;

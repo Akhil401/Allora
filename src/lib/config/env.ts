@@ -31,6 +31,7 @@ const serverSchema = z.object({
   GEMINI_API_KEY: optionalStr,
   NVIDIA_API_KEY: optionalStr,
   GROQ_API_KEY: optionalStr,
+  CEREBRAS_API_KEY: optionalStr,
   OPENROUTER_API_KEY: optionalStr,
   // Comma-separated provider order, e.g. "gemini,nvidia-qwen,nvidia-gemma,groq"
   LLM_PROVIDER_ORDER: optionalStr,

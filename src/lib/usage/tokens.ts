@@ -48,6 +48,11 @@ export const PROVIDER_LIMITS: ProviderLimit[] = [
     freeTierNote: "Free tier: generous tokens/day plus requests/min limits.",
   },
   {
+    id: "cerebras",
+    label: "Cerebras",
+    freeTierNote: "Free tier: generous daily token allowance; very fast inference.",
+  },
+  {
     id: "jina",
     label: "Jina embeddings",
     freeTierNote: "Free: ~1,000,000 tokens total on a new key.",
