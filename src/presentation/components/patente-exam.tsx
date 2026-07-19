@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, Clock, Check, X, Play, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, Clock, Play, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Q {
@@ -128,7 +128,7 @@ export function PatenteExam() {
   if (phase === "done") {
     const passed = errors <= MAX_ERRORS;
     const wrongList = questions
-      .map((q, i) => ({ q, i, chosen: answers[i] }))
+      .map((q, i) => ({ q, chosen: answers[i] }))
       .filter(({ q, chosen }) => chosen === undefined || chosen !== q.correct);
     return (
       <div className="space-y-4">
@@ -154,7 +154,7 @@ export function PatenteExam() {
         {wrongList.length > 0 ? (
           <div className="space-y-2">
             <h2 className="text-sm font-semibold">Review your mistakes</h2>
-            {wrongList.map(({ q, i, chosen }) => (
+            {wrongList.map(({ q, chosen }) => (
               <div key={q.id} className="rounded-xl border bg-card p-3 text-sm shadow-soft">
                 {q.image ? (
                   // eslint-disable-next-line @next/next/no-img-element

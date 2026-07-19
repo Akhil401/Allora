@@ -6,6 +6,7 @@ import { collectText } from "@/core/application/use-cases/tutor";
 import { recordTokenUsage } from "@/infrastructure/db/usage";
 import { estimateTokens } from "@/lib/usage/tokens";
 import { unauthorized, validationError, toProblem } from "@/lib/http/problem";
+import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
