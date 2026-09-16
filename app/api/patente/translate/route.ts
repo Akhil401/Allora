@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getRequestContext } from "@/infrastructure/auth/request-context";
 import { container } from "@/di/container";
 import { collectText } from "@/core/application/use-cases/tutor";
-import { recordTokenUsage } from "@/infrastructure/db/usage";
+import { recordTokenUsage, recordRateLimit } from "@/infrastructure/db/usage";
 import { estimateTokens } from "@/lib/usage/tokens";
 import { unauthorized, validationError, toProblem } from "@/lib/http/problem";
 import { logger } from "@/lib/logger";
@@ -52,13 +52,14 @@ export async function POST(request: NextRequest) {
       'Given one Italian statement and whether it is TRUE or FALSE, reply ONLY with JSON: ' +
       '{"translation": string, "explanation": string}. The translation is clear English; the ' +
       "explanation is ONE short English sentence saying why it is true or false.";
-    const { stream, providerId } = await router.generate({
+    const { stream, providerId, rateLimit } = await router.generate({
       system,
       messages: [{ role: "user", content: `Statement (Italian): "${text}"\nThis statement is ${correct ? "TRUE" : "FALSE"}.` }],
       responseFormat: "json",
       temperature: 0.2,
       maxTokens: 300,
     });
+    void recordRateLimit(ctx.supabase, rateLimit);
     const raw = await collectText(stream);
 
     void recordTokenUsage(ctx.supabase, ctx.userId, {

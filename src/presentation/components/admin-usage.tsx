@@ -12,6 +12,15 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+interface RateLimit {
+  remainingRequests: number | null;
+  limitRequests: number | null;
+  remainingTokens: number | null;
+  limitTokens: number | null;
+  resetRequests: string | null;
+  resetTokens: string | null;
+  updatedAt: string;
+}
 interface ProviderRow {
   id: string;
   label: string;
@@ -22,6 +31,7 @@ interface ProviderRow {
   totalRequests: number;
   todayTokens: number;
   todayRequests: number;
+  rateLimit: RateLimit | null;
 }
 interface Health {
   id: string;
@@ -209,6 +219,9 @@ export function AdminUsage() {
               <p className="mt-2 text-xs text-muted-foreground">
                 Today: {fmt(p.todayTokens)} tokens · {p.todayRequests} requests
               </p>
+
+              {p.rateLimit ? <RemainingQuota rl={p.rateLimit} /> : null}
+
               <p className="mt-1 text-[11px] text-muted-foreground">{p.freeTierNote}</p>
             </div>
           );
@@ -222,6 +235,87 @@ export function AdminUsage() {
       </p>
     </div>
   );
+}
+
+/** Live remaining-quota readout from a provider's x-ratelimit headers. */
+function RemainingQuota({ rl }: { rl: RateLimit }) {
+  const hasReq = rl.remainingRequests != null;
+  const hasTok = rl.remainingTokens != null;
+  if (!hasReq && !hasTok) return null;
+
+  return (
+    <div className="mt-3 space-y-2 rounded-xl border border-primary/20 bg-primary/5 p-3">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">
+        Live remaining (from provider)
+      </p>
+      {hasReq ? (
+        <QuotaBar
+          label="Requests left today"
+          remaining={rl.remainingRequests!}
+          limit={rl.limitRequests}
+          reset={rl.resetRequests}
+        />
+      ) : null}
+      {hasTok ? (
+        <QuotaBar
+          label="Tokens left (this minute)"
+          remaining={rl.remainingTokens!}
+          limit={rl.limitTokens}
+          reset={rl.resetTokens}
+        />
+      ) : null}
+      <p className="text-[10px] text-muted-foreground">
+        Rolling window — resets on the provider&apos;s clock · updated {relTime(rl.updatedAt)}
+      </p>
+    </div>
+  );
+}
+
+function QuotaBar({
+  label,
+  remaining,
+  limit,
+  reset,
+}: {
+  label: string;
+  remaining: number;
+  limit: number | null;
+  reset: string | null;
+}) {
+  const pct = limit && limit > 0 ? Math.max(0, Math.min(100, (remaining / limit) * 100)) : null;
+  const low = pct != null && pct <= 15;
+  return (
+    <div>
+      <div className="mb-1 flex items-baseline justify-between gap-2 text-[11px]">
+        <span className="text-muted-foreground">{label}</span>
+        <span className={cn("font-semibold", low ? "text-destructive" : "text-foreground")}>
+          {fmt(remaining)}
+          {limit ? <span className="font-normal text-muted-foreground"> / {fmt(limit)}</span> : null}
+          {reset ? <span className="font-normal text-muted-foreground"> · resets {reset}</span> : null}
+        </span>
+      </div>
+      {pct != null ? (
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+          <div
+            className={cn("h-full rounded-full", low ? "bg-destructive" : "bg-primary")}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/** Compact "3m ago" style relative time. */
+function relTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  if (!Number.isFinite(diff) || diff < 0) return "just now";
+  const m = Math.floor(diff / 60_000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
 }
 
 function Stat({

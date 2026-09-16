@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { RateLimitSnapshot } from "@/core/application/ports/llm";
 import { logger } from "@/lib/logger";
 
 /**
@@ -32,6 +33,38 @@ export async function recordTokenUsage(
     });
   } catch (err) {
     logger.warn("usage.record_failed", {
+      reason: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
+/**
+ * Upsert the latest rate-limit snapshot for a provider (best-effort). One row
+ * per provider, so the admin panel can read live "remaining" numbers even
+ * though it runs in a different serverless invocation than the chat call.
+ * No-op when the provider didn't report headers. Never throws.
+ */
+export async function recordRateLimit(
+  db: SupabaseClient,
+  snapshot: RateLimitSnapshot | undefined,
+): Promise<void> {
+  if (!snapshot) return;
+  try {
+    await db.from("provider_rate_limits").upsert(
+      {
+        provider: snapshot.provider,
+        remaining_requests: snapshot.remainingRequests ?? null,
+        limit_requests: snapshot.limitRequests ?? null,
+        remaining_tokens: snapshot.remainingTokens ?? null,
+        limit_tokens: snapshot.limitTokens ?? null,
+        reset_requests: snapshot.resetRequests ?? null,
+        reset_tokens: snapshot.resetTokens ?? null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "provider" },
+    );
+  } catch (err) {
+    logger.warn("usage.rate_limit_record_failed", {
       reason: err instanceof Error ? err.message : String(err),
     });
   }

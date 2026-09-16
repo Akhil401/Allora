@@ -48,6 +48,36 @@ export async function GET() {
       .gte("day", since);
     if (error) throw new Error(error.message);
 
+    // Live remaining-quota snapshots (Groq / Cerebras report these via headers).
+    const { data: rlRows } = await admin
+      .from("provider_rate_limits")
+      .select(
+        "provider, remaining_requests, limit_requests, remaining_tokens, limit_tokens, reset_requests, reset_tokens, updated_at",
+      );
+    const rateLimitByProvider = new Map<
+      string,
+      {
+        remainingRequests: number | null;
+        limitRequests: number | null;
+        remainingTokens: number | null;
+        limitTokens: number | null;
+        resetRequests: string | null;
+        resetTokens: string | null;
+        updatedAt: string;
+      }
+    >();
+    for (const r of rlRows ?? []) {
+      rateLimitByProvider.set(r.provider, {
+        remainingRequests: r.remaining_requests,
+        limitRequests: r.limit_requests,
+        remainingTokens: r.remaining_tokens,
+        limitTokens: r.limit_tokens,
+        resetRequests: r.reset_requests,
+        resetTokens: r.reset_tokens,
+        updatedAt: r.updated_at,
+      });
+    }
+
     const rows = (data ?? []) as { provider: string; total_tokens: number; day: string }[];
     const byProvider = new Map<string, Agg>();
     const dailyOverall = new Map<string, number>();
@@ -98,6 +128,7 @@ export async function GET() {
           freeTierNote: cfg?.freeTierNote ?? "",
           tokenBudget,
           pct,
+          rateLimit: rateLimitByProvider.get(id) ?? null,
           ...agg,
         };
       })

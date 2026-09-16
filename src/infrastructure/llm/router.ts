@@ -55,7 +55,7 @@ export class FailoverLlmRouter implements LlmRouter {
 
         const firstChunk = first.value;
         const stream = replay(firstChunk, iterator);
-        return { providerId: provider.id, stream };
+        return { providerId: provider.id, stream, rateLimit: provider.rateLimit?.() };
       } catch (err) {
         const reason = err instanceof Error ? err.message : String(err);
         failures.push(`${provider.id}: ${reason}`);

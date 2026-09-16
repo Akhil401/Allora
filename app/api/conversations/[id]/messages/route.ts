@@ -10,7 +10,7 @@ import { SupabaseMemoryRepository } from "@/infrastructure/db/repositories/memor
 import { SupabaseLessonsRepository } from "@/infrastructure/db/repositories/lessons-repository";
 import { recomputeMemory } from "@/infrastructure/db/memory-sync";
 import { checkAndAwardAchievements } from "@/infrastructure/achievements/award";
-import { recordTokenUsage } from "@/infrastructure/db/usage";
+import { recordTokenUsage, recordRateLimit } from "@/infrastructure/db/usage";
 import { estimateTokens, estimateTokensFromChars } from "@/lib/usage/tokens";
 import { titlesForIds } from "@/presentation/data/curriculum";
 import { unauthorized, validationError, toProblem } from "@/lib/http/problem";
@@ -144,6 +144,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     });
     providerId = result.providerId;
     replyStream = result.stream;
+    // Persist the winning provider's live remaining-quota snapshot (best-effort).
+    void recordRateLimit(ctx.supabase, result.rateLimit);
   } catch (err) {
     return toProblem(err);
   }

@@ -3,6 +3,7 @@ import type {
   LlmRequest,
   LlmChunk,
   ProviderHealth,
+  RateLimitSnapshot,
 } from "@/core/application/ports/llm";
 import { ProviderError, QuotaExceededError, RateLimitError } from "@/core/domain/errors";
 import { parseSseJson } from "../sse";
@@ -21,6 +22,7 @@ export interface OpenAiCompatibleConfig {
 export class OpenAiCompatibleProvider implements LlmProvider {
   readonly id: string;
   private cooldownUntil = 0;
+  private lastRateLimit: RateLimitSnapshot | undefined;
 
   constructor(private readonly config: OpenAiCompatibleConfig) {
     this.id = config.id;
@@ -31,6 +33,47 @@ export class OpenAiCompatibleProvider implements LlmProvider {
       id: this.id,
       healthy: Date.now() >= this.cooldownUntil,
       cooldownUntil: this.cooldownUntil || undefined,
+    };
+  }
+
+  /** Latest remaining-quota snapshot from this provider's `x-ratelimit-*` headers. */
+  rateLimit(): RateLimitSnapshot | undefined {
+    return this.lastRateLimit;
+  }
+
+  /** Parse OpenAI-style rate-limit headers (Groq / Cerebras) into a snapshot. */
+  private captureRateLimit(headers: Headers): void {
+    const num = (k: string): number | null => {
+      const v = headers.get(k);
+      if (v == null || v.trim() === "") return null;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    };
+    const str = (k: string): string | null => headers.get(k) || null;
+
+    const remainingRequests = num("x-ratelimit-remaining-requests");
+    const remainingTokens = num("x-ratelimit-remaining-tokens");
+    const limitRequests = num("x-ratelimit-limit-requests");
+    const limitTokens = num("x-ratelimit-limit-tokens");
+
+    // Only record when the provider actually sent rate-limit headers.
+    if (
+      remainingRequests == null &&
+      remainingTokens == null &&
+      limitRequests == null &&
+      limitTokens == null
+    ) {
+      return;
+    }
+    this.lastRateLimit = {
+      provider: this.id,
+      remainingRequests,
+      limitRequests,
+      remainingTokens,
+      limitTokens,
+      resetRequests: str("x-ratelimit-reset-requests"),
+      resetTokens: str("x-ratelimit-reset-tokens"),
+      capturedAt: Date.now(),
     };
   }
 
@@ -60,6 +103,9 @@ export class OpenAiCompatibleProvider implements LlmProvider {
     } catch {
       throw new ProviderError(`Network error calling ${this.id}`, this.id);
     }
+
+    // Capture remaining-quota headers whether the call succeeded or was limited.
+    this.captureRateLimit(res.headers);
 
     if (!res.ok || !res.body) {
       throw this.mapError(res.status, await safeText(res));

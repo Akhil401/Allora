@@ -3,7 +3,7 @@ import { getRequestContext } from "@/infrastructure/auth/request-context";
 import { container } from "@/di/container";
 import { collectText } from "@/core/application/use-cases/tutor";
 import { buildPatenteTheoryPrompt } from "@/core/prompts/patente";
-import { recordTokenUsage } from "@/infrastructure/db/usage";
+import { recordTokenUsage, recordRateLimit } from "@/infrastructure/db/usage";
 import { estimateTokens } from "@/lib/usage/tokens";
 import { unauthorized, validationError, toProblem } from "@/lib/http/problem";
 import { logger } from "@/lib/logger";
@@ -36,12 +36,13 @@ export async function GET(request: NextRequest) {
     // 2) Generate + cache.
     const router = container.getLlmRouter();
     const system = buildPatenteTheoryPrompt(topic);
-    const { stream, providerId } = await router.generate({
+    const { stream, providerId, rateLimit } = await router.generate({
       system,
       messages: [{ role: "user", content: `Write the study guide for "${topic}".` }],
       temperature: 0.4,
       maxTokens: 700,
     });
+    void recordRateLimit(ctx.supabase, rateLimit);
     const content = (await collectText(stream)).trim();
 
     void recordTokenUsage(ctx.supabase, ctx.userId, {

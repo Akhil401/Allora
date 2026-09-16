@@ -32,17 +32,42 @@ export interface ProviderHealth {
   cooldownUntil?: number;
 }
 
+/**
+ * Live remaining-quota snapshot parsed from a provider's `x-ratelimit-*`
+ * response headers (Groq / Cerebras send these on every call). Values are for
+ * the provider's *current rolling window*, not a lifetime allowance. Providers
+ * that don't report headers (Gemini, NVIDIA) yield `undefined`.
+ */
+export interface RateLimitSnapshot {
+  provider: string;
+  /** Requests left in the request window (Groq: per day). */
+  remainingRequests?: number | null;
+  limitRequests?: number | null;
+  /** Tokens left in the token window (Groq: per minute). */
+  remainingTokens?: number | null;
+  limitTokens?: number | null;
+  /** Provider-formatted reset hints, e.g. "2m30s" or "1.5s". */
+  resetRequests?: string | null;
+  resetTokens?: string | null;
+  /** Epoch ms when this snapshot was captured. */
+  capturedAt: number;
+}
+
 /** A single model provider (Gemini, NVIDIA-Qwen, ...). */
 export interface LlmProvider {
   readonly id: string;
   generate(input: LlmRequest): AsyncIterable<LlmChunk>;
   health(): ProviderHealth;
+  /** Latest rate-limit snapshot from this provider's last call, if it reports one. */
+  rateLimit?(): RateLimitSnapshot | undefined;
 }
 
 /** A selected provider's live stream plus which provider won. */
 export interface LlmStream {
   providerId: string;
   stream: AsyncIterable<LlmChunk>;
+  /** Remaining-quota snapshot for the winning provider, when available. */
+  rateLimit?: RateLimitSnapshot;
 }
 
 /**
