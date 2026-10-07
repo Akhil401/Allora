@@ -27,7 +27,7 @@ const builders: Record<string, Builder> = {
       ? new GeminiProvider({
           id: "gemini",
           apiKey: serverEnv.GEMINI_API_KEY,
-          model: process.env.GEMINI_MODEL ?? "gemini-2.0-flash",
+          model: process.env.GEMINI_MODEL ?? "gemini-flash-lite-latest",
         })
       : null,
 
@@ -37,7 +37,7 @@ const builders: Record<string, Builder> = {
           id: "nvidia-qwen",
           baseUrl: NVIDIA_BASE,
           apiKey: serverEnv.NVIDIA_API_KEY,
-          model: process.env.NVIDIA_QWEN_MODEL ?? "qwen/qwen2.5-7b-instruct",
+          model: process.env.NVIDIA_QWEN_MODEL ?? "meta/llama-3.3-70b-instruct",
         })
       : null,
 
@@ -47,7 +47,7 @@ const builders: Record<string, Builder> = {
           id: "nvidia-gemma",
           baseUrl: NVIDIA_BASE,
           apiKey: serverEnv.NVIDIA_API_KEY,
-          model: process.env.NVIDIA_GEMMA_MODEL ?? "google/gemma-2-9b-it",
+          model: process.env.NVIDIA_GEMMA_MODEL ?? "nvidia/nemotron-3-super-120b-a12b",
         })
       : null,
 
@@ -67,7 +67,7 @@ const builders: Record<string, Builder> = {
           id: "cerebras",
           baseUrl: CEREBRAS_BASE,
           apiKey: serverEnv.CEREBRAS_API_KEY,
-          model: process.env.CEREBRAS_MODEL ?? "llama-3.3-70b",
+          model: process.env.CEREBRAS_MODEL ?? "gpt-oss-120b",
         })
       : null,
 };
